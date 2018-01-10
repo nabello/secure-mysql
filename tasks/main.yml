@@ -1,0 +1,56 @@
+---
+# Restart mysqld in order to make /var/run/mysqld/mysqld.sock
+# available after installation or else you will not be able to
+# continue with the secure installation. Using a handler to do
+# this does not seem to influence the creation of the socket.
+- name: Re-Start Centos 7 MySQL Server
+  systemd: name=mysqld state=restarted
+
+- debug:
+    msg: "MySQL root password {{msi_mysql_root_password}}"
+
+# Create a root user with a password.
+- name: MySQL Secure Installation - Set MySQL root Password
+  mysql_user:
+    name='root'
+    password='{{msi_mysql_root_password | mandatory}}'
+    host={{item}}
+    state=present
+  with_items: "{{ msi_mysql_hosts }}"
+  tags:
+      - msi_set_mysql_root_password
+
+
+# Create .my.cnf file
+- name: MySQL Secure Installation - Create /root/.my.cnf file
+  template:
+    src=my.cnf.j2
+    dest="/root/.my.cnf"
+  tags:
+      - msi_create_mycnf_file
+
+
+# Clean up the default db installation, remove anonymous users.
+- name: MySQL Secure Installation - Ensure anonymous users are not in the database
+  mysql_user:
+    login_user='root'
+    login_password='{{ msi_mysql_root_password }}'
+    name=''
+    host={{ item }}
+    state=absent
+  with_items:
+   - localhost
+   - "{{ ansible_hostname }}"
+  tags:
+      - msi_remove_anonymous_users
+
+
+# Clean up the default db installation, remove test db's.
+- name: MySQL Secure Installation - Remove the test database
+  mysql_db:
+    login_user='root'
+    login_password='{{ msi_mysql_root_password }}'
+    name=test
+    state=absent
+  tags:
+      - msi_remove_test_dbs
