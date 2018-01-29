@@ -4,7 +4,7 @@
 # continue with the secure installation. Using a handler to do
 # this does not seem to influence the creation of the socket.
 - name: Re-Start Centos 7 MySQL Server
-  systemd: name=mysqld state=restarted
+  command: '/etc/init.d/mysql restart'
 
 - debug:
     msg: "MySQL root password {{msi_mysql_root_password}}"
